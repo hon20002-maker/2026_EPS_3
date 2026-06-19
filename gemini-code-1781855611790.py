@@ -1,54 +1,55 @@
 import streamlit as st
 import pandas as pd
 
+# 設定網頁標題與風格
 st.set_page_config(page_title="全台股五等分價值估值工具", layout="centered")
 
-st.title("📈 2026 全台熱門股票五等分估值工具")
-st.write("輸入股票代號，系統將直接依據 2026 最新核心財報與近三年歷史本益比，為您秒速產出股價區間。")
+st.title("📈 全台上市/上櫃股票五等分價值估值工具")
+st.write("本網頁支援全台灣所有上市與上櫃股票！請至財經網站（如台灣股市資訊網、Goodinfo）查詢該股數據並填入下方，系統將秒速為您產出 2026 最新五等分估值表。")
 
-# 終極解決方案：直接內建全台最熱門、大眾最常查詢的權值與 AI 概念股資料庫（100% 穩定、不塞車）
-def get_ultimate_stock_db():
-    return {
-        "2330": {"name": "台積電", "y2025_rev": 38090.5, "growth": 0.3000, "margin": 0.4676, "shares": 259.3, "pe_high": 24.93, "pe_low": 16.71},
-        "2317": {"name": "鴻海", "y2025_rev": 80998.0, "growth": 0.3179, "margin": 0.0268, "shares": 140.0, "pe_high": 17.85, "pe_low": 10.05},
-        "2382": {"name": "廣達", "y2025_rev": 10856.0, "growth": 0.1850, "margin": 0.0450, "shares": 38.6, "pe_high": 19.50, "pe_low": 11.20},
-        "3231": {"name": "緯創", "y2025_rev": 8670.0, "growth": 0.1420, "margin": 0.0320, "shares": 28.9, "pe_high": 18.20, "pe_low": 10.50},
-        "2454": {"name": "聯發科", "y2025_rev": 5462.0, "growth": 0.1520, "margin": 0.2150, "shares": 16.0, "pe_high": 21.00, "pe_low": 13.50},
-        "2308": {"name": "台達電", "y2025_rev": 4012.0, "growth": 0.1150, "margin": 0.0910, "shares": 25.9, "pe_high": 22.40, "pe_low": 15.10},
-        "2324": {"name": "仁寶", "y2025_rev": 9467.0, "growth": 0.0850, "margin": 0.0180, "shares": 44.1, "pe_high": 16.80, "pe_low": 10.10},
-        "2357": {"name": "華碩", "y2025_rev": 4810.0, "growth": 0.1210, "margin": 0.0480, "shares": 7.42, "pe_high": 17.50, "pe_low": 11.00},
-        "6669": {"name": "緯穎", "y2025_rev": 2418.0, "growth": 0.2540, "margin": 0.0680, "shares": 1.75, "pe_high": 24.10, "pe_low": 14.80},
-        "2603": {"name": "長榮", "y2025_rev": 3200.0, "growth": 0.0950, "margin": 0.2850, "shares": 21.1, "pe_high": 8.50, "pe_low": 4.20},
-    }
+st.markdown("---")
 
-# 介面輸入區
-db = get_ultimate_stock_db()
-stock_list_str = "、".join([f"{k}({v['name']})" for k, v in db.items()])
-st.info(f"💡 目前系統已內建全台最火熱的權值與 AI 概念股資料庫，支援：\n{stock_list_str}")
+# 建立側邊欄或主介面的輸入區
+st.subheader("📥 第一步：填入股票基本與財務數據")
 
-stock_input = st.text_input("請輸入股票代號（例如：2330、2317、2382、3231）：", "2330")
+col1, col2 = st.columns(2)
+with col1:
+    stock_name = st.text_input("股票名稱或代號：", "廣達 (2382)")
+    rev_2025 = st.number_input("2025 年全年總營收 (億元)：", min_value=0.0, value=10856.0, step=10.0, help="請填入2025年全年的總營收")
+    growth_rate = st.number_input("2026年前5個月累計營收年增率 (%)：", value=18.5, step=0.1, help="例如年增18.5%，請輸入 18.5")
+    margin_rate = st.number_input("最新近四季平均稅後淨利率 (%)：", value=4.5, step=0.1, help="請將最新近四季的稅後淨利率相加除以4")
 
-if st.button("秒速精算合理股價"):
-    # 直接從內建超穩定資料庫讀取
-    if stock_input in db:
-        data = db[stock_input]
-        st.success(f"⚡ 讀取成功！【{data['name']} ({stock_input})】2026年最新預估報告產出中：")
+with col2:
+    shares_out = st.number_input("目前發行總股數 (億股)：", min_value=0.01, value=38.6, step=0.1, help="可由實收資本額除以10元換算，例如資本額386億即為38.6億股")
+    pe_high = st.number_input("近三年每年最高本益比之平均值：", min_value=0.1, value=19.5, step=0.1)
+    pe_low = st.number_input("近三年每年最低本益比之平均值：", min_value=0.1, value=11.2, step=0.1)
+
+st.markdown("---")
+
+# 計算按鈕
+if st.button("🚀 一鍵秒速精算合理股價", type="primary"):
+    if pe_high <= pe_low:
+        st.error("錯誤：『最高本益比平均值』必須大於『最低本益比平均值』，請重新檢查輸入。")
+    else:
+        st.success(f"⚡ 計算成功！【{stock_name}】2026年最新五等分估值報告已產出：")
         
-        # 核心財務估算流程
-        est_rev = data['y2025_rev'] * (1 + data['growth'])
-        est_net_income = est_rev * data['margin']
-        est_eps = est_net_income / data['shares']
+        # 1. 預估 2026 全年營收
+        est_rev = rev_2025 * (1 + (growth_rate / 100))
+        # 2. 預估 2026 稅後淨利
+        est_net_income = est_rev * (margin_rate / 100)
+        # 3. 預估 2026 全年 EPS
+        est_eps = est_net_income / shares_out
         
-        # 顯示三大核心指標
-        col1, col2, col3 = st.columns(3)
-        col1.metric("預估 2026 全年營收", f"{est_rev:,.1f} 億元")
-        col2.metric("預估 2026 稅後淨利", f"{est_net_income:,.1f} 億元")
-        col3.metric("預估 2026 全年 EPS", f"{est_eps:.2f} 元")
+        # 顯示三大核心預估指標
+        c1, c2, c3 = st.columns(3)
+        c1.metric("預估 2026 全年營收", f"{est_rev:,.1f} 億元")
+        c2.metric("預估 2026 稅後淨利", f"{est_net_income:,.1f} 億元")
+        c3.metric("預估 2026 全年 EPS", f"{est_eps:.2f} 元")
         
-        # 五等分區間推導
-        pe_range = data['pe_high'] - data['pe_low']
+        # 5. 五等分區間推導
+        pe_range = pe_high - pe_low
         step = pe_range / 5
-        pe_points = [data['pe_low'] + step * i for i in range(6)]
+        pe_points = [pe_low + step * i for i in range(6)]
         
         intervals = []
         for i in range(5):
@@ -72,7 +73,10 @@ if st.button("秒速精算合理股價"):
             })
             
         df = pd.DataFrame(intervals)
+        
+        # 漂亮輸出結果表格
         st.subheader("📊 2026 年股票估值五等分區間表")
         st.table(df)
-    else:
-        st.error(f"抱歉！目前網頁為穩定連線，暫無內建代號 {stock_input}。請輸入提示藍框中有的熱門代號（如 2330、2317、2382）。")
+        
+        # 貼心小警語
+        st.caption("※ 註：本工具計算結果僅供參考，投資有風險，入市需謹慎。")
